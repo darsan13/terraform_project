@@ -103,44 +103,6 @@ resource "aws_instance" "web" {
   key_name      = var.key_name
   subnet_id     = aws_subnet.public.id
   security_groups = [aws_security_group.ec2_sg.name]
-
-  user_data = <<-EOF
-    #!/bin/bash
-    # Install Docker
-    amazon-linux-extras install -y docker
-    service docker start
-    usermod -a -G docker ec2-user
-
-    # Install aws-cli v2
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip awscliv2.zip
-    sudo ./aws/install
-
-    # Login to ECR
-    $(aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${aws_ecr_repository.main.repository_url})
-
-    # Create Dockerfile
-    cat << 'EOF' > Dockerfile
-    FROM nginx:latest
-    COPY index.html /usr/share/nginx/html/index.html
-    EOF
-
-    # Create index.html
-    echo "Hello, World!" > index.html
-
-    # Build Docker image
-    docker build -t ${aws_ecr_repository.main.repository_url}:latest .
-
-    # Push Docker image to ECR
-    docker push ${aws_ecr_repository.main.repository_url}:latest
-
-    # Run Nginx container
-    docker run -d -p 80:80 ${aws_ecr_repository.main.repository_url}:latest
-  EOF
-
-  tags = {
-    Name = "web-instance"
-  }
 }
 
 resource "aws_lb" "main" {
